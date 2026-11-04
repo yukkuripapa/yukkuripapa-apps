@@ -1,0 +1,1630 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>おさんぽちず アプリ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&display=swap" rel="stylesheet">
+<style>
+  :root { --line: #e0d6c6; --accent: #f08a24; --panel: #f3d9b5; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: "Kosugi Maru", "Meiryo", sans-serif; background: #efe9de; color: #333; }
+  header { position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 8px 12px; background: #fff; border-bottom: 2px solid var(--panel); }
+  header .group { display: flex; gap: 6px; flex-wrap: wrap; }
+  button { font: inherit; font-size: 15px; padding: 8px 12px; border-radius: 12px; border: 2px solid var(--line); background: #fffaf2; color: #333; cursor: pointer; }
+  button:hover { border-color: #d7b98f; }
+  button.active { background: #ffe0b2; border-color: var(--accent); }
+  button.danger { border-color: #e57373; color: #c62828; background: #fff; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  #status { padding: 6px 14px; font-size: 14px; color: #6d5b45; min-height: 30px; }
+  #status.warn { color: #c62828; }
+  main { display: flex; gap: 12px; padding: 0 12px 24px; align-items: flex-start; }
+  .stage { flex: 1; min-width: 0; }
+  .sheet { width: 100%; aspect-ratio: 297 / 210; background: #fffdf6; box-shadow: 0 2px 10px rgba(0,0,0,.15); border-radius: 4px; }
+  #svg { width: 100%; height: 100%; display: block; touch-action: none; user-select: none; -webkit-user-select: none; }
+  aside { width: 310px; flex: none; background: #fff; border-radius: 16px; padding: 12px 14px; border: 2px solid var(--panel); max-height: calc(100vh - 110px); overflow: auto; }
+  aside h3 { margin: 6px 0 8px; font-size: 17px; color: #e65100; }
+  aside h4 { margin: 14px 0 6px; font-size: 15px; }
+  aside p, aside li { font-size: 14px; line-height: 1.6; }
+  aside ol { padding-left: 20px; margin: 4px 0; }
+  aside label { display: block; margin: 8px 0; font-size: 14px; }
+  aside input[type=text] { width: 100%; font: inherit; font-size: 17px; padding: 6px 8px; border: 2px solid var(--line); border-radius: 10px; margin-top: 3px; }
+  aside input[type=range] { width: 100%; }
+  aside .row { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+  .picker { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+  .picker button { font-size: 22px; padding: 4px 0; line-height: 1.3; }
+  .picker svg { width: 26px; height: 26px; vertical-align: middle; }
+  .swatches button { width: 34px; height: 34px; border-radius: 50%; padding: 0; }
+  .swatches button.active { outline: 3px solid #333; outline-offset: 2px; }
+  .upload { display: inline-block; margin-top: 6px; font-size: 14px; }
+  .upload input { font-size: 13px; max-width: 100%; }
+  hr { border: none; border-top: 2px dashed var(--line); margin: 14px 0; }
+  aside select, aside input[type=number] { font: inherit; font-size: 16px; padding: 4px 6px; border: 2px solid var(--line); border-radius: 10px; margin-top: 3px; background: #fff; }
+  aside select { width: 100%; }
+  aside input[type=number] { width: 5.5em; }
+  aside .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+  aside .grid2 label { margin: 4px 0; }
+  aside .small { font-size: 13px; color: #6d5b45; margin: 4px 0; }
+  .msg { font-size: 14px; line-height: 1.5; padding: 6px 8px; border-radius: 8px; margin: 4px 0; background: #fff3e0; color: #8a4b00; }
+  .msg.ok { background: #e8f5e9; color: #2e7d32; }
+  .msg:empty { display: none; }
+  /* シールの がめん */
+  .lstage { display: none; flex: 1; min-width: 0; }
+  body.labels .stage { display: none; }
+  body.labels .lstage { display: block; }
+  .lsheet { margin: 0 auto; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.15); border-radius: 4px; }
+  #lsvg { display: block; width: 100%; height: auto; }
+  #lsvg [data-slot] { cursor: pointer; }
+  .lnote { text-align: center; font-size: 14px; color: #6d5b45; margin: 8px 0 0; }
+  .lnote.warn { color: #c62828; }
+  /* しゃしんの いちと おおきさ */
+  .crop { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; padding: 12px; }
+  .crop[hidden] { display: none; }
+  .cropCard { background: #fff; border-radius: 16px; padding: 14px 16px; width: min(360px, 100%); }
+  .cropCard h3 { margin: 4px 0 6px; font-size: 17px; color: #e65100; }
+  .cropCard .small { font-size: 13px; color: #6d5b45; margin: 4px 0 8px; line-height: 1.5; }
+  #cropCanvas { width: 100%; aspect-ratio: 1; display: block; border-radius: 12px; background: #eee; touch-action: none; cursor: grab; }
+  .cropZoom { display: flex; align-items: center; gap: 8px; margin: 10px 0; }
+  .cropZoom input { flex: 1; }
+  .cropZoom button { width: 40px; padding: 6px 0; font-size: 18px; }
+  .cropCard .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  /* ちずの いちらん */
+  .maplist { list-style: none; padding: 0; margin: 10px 0; }
+  .maplist li { display: flex; align-items: center; gap: 6px; padding: 8px; border: 2px solid var(--line); border-radius: 12px; margin-bottom: 6px; }
+  .maplist li.cur { border-color: var(--accent); background: #fff8ee; }
+  .maplist .nm { flex: 1; min-width: 0; font-size: 15px; word-break: break-all; }
+  .maplist .nm small { display: block; color: #8a7a66; font-size: 12px; }
+  .maplist button { padding: 6px 10px; font-size: 14px; }
+  @media (max-width: 900px) { main { flex-direction: column; align-items: stretch; } .stage { width: 100%; } aside { width: auto; max-height: none; } }
+  .about { max-width: 960px; margin: 0 auto 28px; padding: 10px 16px; font-size: 13px; line-height: 1.7; color: #6d5b45; }
+  .about ul { margin: 4px 0; padding-left: 18px; }
+  .about a { color: #e65100; }
+  @media print {
+    header, aside, #status, .about { display: none !important; }
+    body { background: #fff; }
+    main { padding: 0; display: block; }
+    .sheet { width: 297mm; height: 210mm; box-shadow: none; border-radius: 0; }
+    .no-print { display: none; }
+    body.labels .lsheet { max-width: none !important; width: var(--pw); height: var(--ph); margin: 0; box-shadow: none; border-radius: 0; overflow: hidden; }
+    body.labels #lsvg { width: var(--pw); height: var(--ph); }
+  }
+</style>
+<style id="pageCss">@page { size: A4 landscape; margin: 0; }</style>
+</head>
+<body>
+<header>
+  <div class="group" id="modes">
+    <button data-mode="select">👆 選ぶ・動かす</button>
+    <button data-mode="route">🟠 コースをかく</button>
+    <button data-mode="road">➖ 道をかく</button>
+    <button data-mode="stop">🚏 バス停を置く</button>
+    <button data-mode="deco">🐕 絵を置く</button>
+    <button data-mode="area">🟩 場所をかく</button>
+  </div>
+  <div class="group">
+    <button id="undo">↩ もどす</button>
+    <button id="labelBtn">🏷 シールを作る</button>
+    <button id="print" class="primary">🖨 印刷</button>
+    <button id="saveFile">💾 ファイルに保存</button>
+    <button id="openFile">📂 ファイルを開く</button>
+    <input type="file" id="openInput" accept=".json,application/json" hidden>
+    <button id="mapsBtn">🗂 地図の一覧</button>
+  </div>
+</header>
+<div id="status"></div>
+<main>
+  <div class="stage">
+    <div class="sheet">
+      <svg id="svg" viewBox="0 0 1123 794" xmlns="http://www.w3.org/2000/svg" font-family="Kosugi Maru, Meiryo, sans-serif">
+        <defs>
+          <pattern id="crop" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(-20)">
+            <rect width="14" height="14" fill="#cfe8a9"/>
+            <line x1="0" y1="7" x2="14" y2="7" stroke="#9ccc65" stroke-width="3"/>
+          </pattern>
+          <clipPath id="mapClip"><rect id="clipRect" x="30" y="85" width="640" height="690" rx="24"/></clipPath>
+        </defs>
+        <text id="title" x="40" y="62" font-size="40" fill="#e65100" font-weight="bold"></text>
+        <rect id="mapBg" x="30" y="85" width="640" height="690" rx="24" fill="#f3f7ec"/>
+        <g clip-path="url(#mapClip)">
+          <g id="mapG" transform="translate(36,92) scale(0.975)"></g>
+        </g>
+        <rect id="mapBorder" x="30" y="85" width="640" height="690" rx="24" fill="none" stroke="#cfd8c4" stroke-width="3" pointer-events="none"/>
+        <g id="sheetG"></g>
+      </svg>
+    </div>
+  </div>
+  <div class="lstage">
+    <div class="lsheet" id="lsheet">
+      <svg id="lsvg" viewBox="0 0 210 297" xmlns="http://www.w3.org/2000/svg" font-family="Kosugi Maru, Meiryo, sans-serif"></svg>
+    </div>
+    <p class="lnote no-print" id="lnote"></p>
+  </div>
+  <aside id="panel"></aside>
+</main>
+<footer class="about">
+  <b>このアプリについて</b>
+  <ul>
+    <li>むりょうで つかえます。</li>
+    <li>いれた ことばや しゃしんは、この ブラウザの なかだけに ほぞん されます。インターネットの さきに おくられる ことは ありません。</li>
+    <li>iPhone の しゃしん（HEIC）を えらんだ ときだけ、へんかんの ための ぶひん（heic2any）を インターネットから よみこみます。へんかんは この ブラウザの なかで おこない、しゃしんは おくられません。</li>
+    <li>えは パソコンや スマホの「えもじ」です。きしゅに よって みためが すこし かわります。</li>
+    <li>つかいかたの ヒントは、わがやで ためして よかった ことです。こまった ときは、りょういくや ほいくの せんもんかにも そうだん してください。</li>
+    <li>つくった ひと：こうくんパパ（<a href="https://yukkuripapa.com/">ブログ「ゆっくり育つ子と、AI見習いパパ」</a>）</li>
+  </ul>
+  <p class="aboutlinks"><a href="../">トップへ</a> ・ <a href="../card/">しかくしえん カード アプリ</a></p>
+</footer>
+<div id="cropBox" class="crop no-print" hidden>
+  <div class="cropCard">
+    <h3>写真の位置と大きさを合わせる</h3>
+    <p class="small">写真をドラッグして動かし、下のバーで大きさを変えます。丸の中が、地図とシールに使われます。</p>
+    <canvas id="cropCanvas" width="600" height="600"></canvas>
+    <div class="cropZoom"><button data-crop="out" aria-label="小さく">－</button><input type="range" id="cropRange" min="1" max="5" step="0.01" value="1" aria-label="大きさ"><button data-crop="in" aria-label="大きく">＋</button></div>
+    <div class="row"><button class="primary" data-crop="ok">✔ これで決める</button><button data-crop="reset">最初の位置</button><button data-crop="cancel">やめる</button></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const KEY = 'osanpo-map-v1';
+  const COLORS = ['#e53935', '#1e88e5', '#43a047', '#fb8c00', '#8e24aa', '#00897b', '#6d4c41', '#f06292'];
+  const EMOJIS = ['🚌','🚑','🚒','🚓','🚗','🚲','🚃','🚜','🐕','🐈','🐦','🦆','🐟','🐸','🌻','🌸','🌳','🍂','🏠','🏫','🏥','🏪','⛩️','🌉','🚥','⛰️','🥕','🍙','🧃','🎈','⭐','🍎','🏞️','🎠','🚏','🔥'];
+  const ROAD_KINDS = {
+    big:   { label: '大きい道', w: 34, color: '#d3d8de' },
+    mid:   { label: 'ふつうの道', w: 22, color: '#d3d8de' },
+    small: { label: '細い道',   w: 14, color: '#d3d8de' },
+    path:  { label: '小道（点線）', w: 12, color: '#c9b48a', dash: '2 10' },
+  };
+  const AREA_KINDS = { field: '畑', house: '家・建物', park: '草・公園', water: '川・池', mound: '小山' };
+  // 地図エリア（mapG の座標）
+  const MAP = { x: -6, y: -7, w: 656, h: 708 };
+  // ちずの 1mm（A4よこ 297mm = 1123）
+  const MM = 1123 / 297;
+  // シールようし（エーワン こうしきの すんぽうず より。すうじは mm）
+  const PAPERS = { A4: { w: 210, h: 297, label: 'A4' }, hagaki: { w: 100, h: 148, label: 'はがき' } };
+  const LABELS = [
+    { key: 'F24A4-4', name: 'A4 24面（直径40mm）', paper: 'A4', d: 40, cols: 4, rows: 6, left: 16, top: 13.5, gx: 6, gy: 6,
+      codes: ['28814', '28394', '29223', '31295', '31395', '31379', '31745', '62424', '64424', '75724', '76724', '78424', '28292'] },
+    { key: 'F12A4-3', name: 'A4 12面（直径60mm）', paper: 'A4', d: 60, cols: 3, rows: 4, left: 8, top: 18, gx: 7, gy: 7,
+      codes: ['31294', '31394', '29225', '75412', '76412', '78412', '28291'] },
+    { key: 'F48A4-1', name: 'A4 48面（直径30mm）', paper: 'A4', d: 30, cols: 6, rows: 8, left: 7.5, top: 18, gx: 3, gy: 3,
+      codes: ['31296', '31396', '62448', '64448', '75248', '76248', '78448'] },
+    { key: 'F20HS-1', name: 'はがき 20面（直径20mm）', paper: 'hagaki', d: 20, cols: 4, rows: 5, left: 5.5, top: 14, gx: 3, gy: 5,
+      codes: ['29604', '29614'] },
+    { key: 'F24HS-3', name: 'はがき 24面（直径20mm）', paper: 'hagaki', d: 20, cols: 4, rows: 6, left: 7, top: 9, gx: 2, gy: 2,
+      codes: ['26105'] },
+  ];
+  function labelDefault() {
+    return {
+      key: '', code: '',
+      custom: { paper: 'A4', d: 40, cols: 4, rows: 6, left: 16, top: 13.5, gx: 6, gy: 6 },
+      fitMap: true, ring: true, num: true, name: true, goal: true, fill: true, skip: 0, dx: 0, dy: 0, guide: false,
+    };
+  }
+  function normalize(s) {
+    s.label = Object.assign(labelDefault(), s.label || {});
+    s.label.custom = Object.assign(labelDefault().custom, s.label.custom || {});
+    return s;
+  }
+
+  const $ = (s) => document.querySelector(s);
+  const svg = $('#svg'), mapG = $('#mapG'), sheetG = $('#sheetG'), panelEl = $('#panel'), statusEl = $('#status');
+  const uid = () => Math.random().toString(36).slice(2, 9);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const len = (s) => [...String(s)].length;
+  const R = Math.round;
+
+  function defaultState() {
+    const road = (kind, pts) => ({ id: uid(), kind, pts });
+    const area = (kind, x, y, w, h) => ({ id: uid(), kind, x, y, w, h });
+    const deco = (v, x, y, size) => ({ id: uid(), icon: { t: 'emoji', v }, x, y, size });
+    return {
+      // さいしょの ちずは かくうの まち（れい）
+      title: '🚌 おさんぽ ちず',
+      hint1: '🚌 バスに なって',
+      hint2: 'バスていを まわろう',
+      bg: null,
+      areas: [
+        area('water', 575, -7, 75, 708),
+        area('park', 175, 20, 125, 95), area('park', 350, 195, 115, 115), area('park', 360, 590, 120, 90),
+        area('field', 145, 195, 150, 95), area('field', 145, 305, 150, 120),
+        area('house', 15, 20, 70, 50), area('house', 15, 85, 60, 50), area('house', 15, 195, 70, 55), area('house', 15, 270, 60, 50),
+        area('house', 15, 350, 70, 55), area('house', 360, 20, 70, 50), area('house', 450, 30, 80, 55), area('house', 490, 195, 60, 55),
+        area('house', 360, 370, 60, 50), area('house', 440, 365, 70, 60), area('house', 230, 510, 70, 50), area('house', 360, 505, 70, 55),
+        area('house', 460, 515, 75, 50),
+      ],
+      roads: [
+        road('big', [[-6, 470], [650, 470]]),
+        road('mid', [[330, -7], [330, 701]]),
+        road('mid', [[-6, 165], [180, 155], [330, 170], [480, 160], [650, 140]]),
+        road('small', [[115, 165], [115, 470]]),
+        road('small', [[330, 335], [650, 335]]),
+        road('small', [[480, 160], [480, 335]]),
+        road('path', [[200, 470], [210, 560], [180, 701]]),
+      ],
+      routes: [
+        { id: uid(), pts: [[150, 545], [130, 482], [127, 300], [127, 180], [330, 182], [468, 172], [468, 323], [342, 323], [342, 458], [175, 458]] },
+      ],
+      decos: [
+        deco('🚌', 520, 470, 60), deco('🐕', 245, 440, 48), deco('🦆', 612, 245, 46),
+        deco('🌸', 50, 455, 44), deco('🌳', 420, 640, 52), deco('🐈', 540, 610, 46),
+      ],
+      stops: [
+        { id: uid(), x: 255, y: 250, label: 'はたけ', color: '#43a047', icon: { t: 'emoji', v: '🥕' } },
+        { id: uid(), x: 300, y: 70, label: 'じんじゃ', color: '#e53935', icon: { t: 'emoji', v: '⛩️' } },
+        { id: uid(), x: 455, y: 255, label: 'こうえん', color: '#1e88e5', icon: { t: 'emoji', v: '🎠' } },
+        { id: uid(), x: 440, y: 415, label: 'おみせ', color: '#fb8c00', icon: { t: 'emoji', v: '🏪' } },
+      ],
+      goal: { x: 100, y: 575, label: 'おうち', sub: 'スタート ・ ゴール', icon: { t: 'emoji', v: '🏠' } },
+      sheetMode: 'sticker',  // みぎの らん：'sticker'（シールを はる）か 'order'（じゅんばん だけ）
+      hang: '',              // おりせんと あな：''（なし）/ 'fold'（おりせん だけ）/ 'bottom'（したに あな）/ 'top'（うえに あな）
+      label: labelDefault(),
+    };
+  }
+
+  const storageOK = (() => {
+    try { localStorage.setItem('__t', '1'); localStorage.removeItem('__t'); return true; } catch (e) { return false; }
+  })();
+  let state = load();
+  let mode = 'select';
+  let sel = null;          // 選んでいるもの の id
+  let draft = null;        // かいている とちゅうの せん
+  let drag = null;
+  let roadKind = 'mid', areaKind = 'field';
+  let decoIcon = { t: 'emoji', v: '🐕' };
+  let decoSize = 58;                 // つぎに おく えの おおきさ
+  let areaSize = { w: 110, h: 80 };  // タップだけで おく ばしょの おおきさ（さいごに かいた もの）
+  let stopColor = null;
+  let editing = false;
+  let view = 'map';        // 'map' か 'label'（シール）
+  const undoStack = [];
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) return normalize(Object.assign(defaultState(), JSON.parse(raw)));
+    } catch (e) { /* つかえない ときは さいしょの ちず */ }
+    return defaultState();
+  }
+  function persist() {
+    saveToLibrary();
+    if (!storageOK) return;
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+    } catch (e) {
+      // いっぱいでも「ちずの いちらん」（IndexedDB）には ほぞん される ので、そちらが ない ときだけ しらせる
+      if (!db) say('ブラウザに保存できませんでした（写真が大きすぎるかもしれません）。「ファイルに保存」を使ってください。', true);
+    }
+  }
+  function commit() {
+    undoStack.push(JSON.stringify(state));
+    if (undoStack.length > 80) undoStack.shift();
+  }
+  function undo() {
+    if (draft) { draft.pts.pop(); if (!draft.pts.length) draft = null; render(); renderPanel(); return; }
+    const prev = undoStack.pop();
+    if (!prev) { say('もどせるものがありません'); return; }
+    const keep = state.label;  // シールの せっていは もどさない
+    state = JSON.parse(prev);
+    state.label = keep;
+    if (sel && !find(sel)) sel = null;
+    changed();
+  }
+  function changed() { render(); renderPanel(); persist(); }
+  function say(msg, warn) { statusEl.textContent = msg || ''; statusEl.classList.toggle('warn', !!warn); }
+
+  function find(id) {
+    if (id === 'goal') return { type: 'goal', item: state.goal };
+    const lists = [['road', state.roads], ['route', state.routes], ['stop', state.stops], ['deco', state.decos], ['area', state.areas]];
+    for (const [type, arr] of lists) {
+      const item = arr.find((o) => o.id === id);
+      if (item) return { type, item, arr };
+    }
+    return null;
+  }
+
+  // ---------- え（アイコン） ----------
+  function tofuSvg(cx, cy, box) {
+    const s = box / 43;
+    return `<g transform="translate(${cx},${cy}) scale(${s})" stroke="#a89f88" stroke-width="2" stroke-linejoin="round">
+      <polygon points="-16,-4 -6,-13 18,-13 8,-4" fill="#fffdf2"/>
+      <polygon points="8,-4 18,-13 18,7 8,16" fill="#efe8d4"/>
+      <rect x="-16" y="-4" width="24" height="20" fill="#fffef8"/></g>`;
+  }
+  let clipN = 0;
+  function iconSvg(icon, cx, cy, box) {
+    if (!icon) return '';
+    if (icon.t === 'tofu') return tofuSvg(cx, cy, box);
+    if (icon.t === 'img') {
+      const id = 'ic' + (clipN++);
+      return `<clipPath id="${id}"><circle cx="${cx}" cy="${cy}" r="${box / 2}"/></clipPath>
+        <image href="${esc(icon.v)}" x="${cx - box / 2}" y="${cy - box / 2}" width="${box}" height="${box}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${id})"/>`;
+    }
+    return `<text x="${cx}" y="${cy}" font-size="${(box * 0.6).toFixed(1)}" text-anchor="middle" dominant-baseline="central">${esc(icon.v)}</text>`;
+  }
+
+  // ---------- ちず ----------
+  function pts2(pts) { return pts.map((p) => p.join(',')).join(' '); }
+  function tri(x, y, a, s = 1) {
+    return `<path d="M-10,-9 L10,0 L-10,9 z" transform="translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${a.toFixed(1)}) scale(${s})" fill="#e65100" stroke="#fff" stroke-width="2"/>`;
+  }
+  function arrows(pts) {
+    let out = '', acc = 0, next = 110;
+    const step = 150;
+    for (let i = 1; i < pts.length; i++) {
+      const [x1, y1] = pts[i - 1], [x2, y2] = pts[i];
+      const L = Math.hypot(x2 - x1, y2 - y1);
+      if (!L) continue;
+      const ang = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+      while (acc + L >= next) {
+        const t = (next - acc) / L;
+        out += tri(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t, ang);
+        next += step;
+      }
+      acc += L;
+    }
+    const n = pts.length;
+    if (n >= 2) {
+      const a = pts[n - 2], b = pts[n - 1];
+      out += tri(b[0], b[1], Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI, 1.4);
+    }
+    return out;
+  }
+  function areaSvg(a) {
+    const d = `data-id="${a.id}"`;
+    if (a.kind === 'mound') {
+      const cx = a.x + a.w / 2, cy = a.y + a.h / 2;
+      return `<g ${d}><ellipse cx="${cx}" cy="${cy}" rx="${a.w / 2}" ry="${a.h / 2}" fill="#7cb342"/>
+        <ellipse cx="${cx}" cy="${cy - a.h * 0.15}" rx="${a.w * 0.32}" ry="${a.h * 0.3}" fill="#9ccc65"/></g>`;
+    }
+    const fill = { field: 'url(#crop)', house: '#e3ddd0', park: '#c5e1a5', water: '#b3e5fc' }[a.kind] || '#e3ddd0';
+    const rx = a.kind === 'house' ? 6 : 12;
+    return `<rect ${d} x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}" rx="${rx}" fill="${fill}"/>`;
+  }
+  function roadSvg(r) {
+    const k = ROAD_KINDS[r.kind] || ROAD_KINDS.mid;
+    return `<g data-id="${r.id}">
+      <polyline points="${pts2(r.pts)}" fill="none" stroke="${k.color}" stroke-width="${k.w}" stroke-linecap="round" stroke-linejoin="round" ${k.dash ? `stroke-dasharray="${k.dash}"` : ''}/>
+      <polyline points="${pts2(r.pts)}" fill="none" stroke="transparent" stroke-width="${Math.max(k.w, 28)}" pointer-events="stroke"/></g>`;
+  }
+  function routeSvg(r) {
+    return `<g data-id="${r.id}">
+      <polyline points="${pts2(r.pts)}" fill="none" stroke="#f08a24" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="18 12"/>
+      ${arrows(r.pts)}
+      <polyline points="${pts2(r.pts)}" fill="none" stroke="transparent" stroke-width="28" pointer-events="stroke"/></g>`;
+  }
+  function stopSvg(s, i) {
+    const c = s.color, lw = Math.max(90, len(s.label) * 20 + 30);
+    // flipX：しゃしんと なまえを みぎへ、flipY：なまえを うえへ（ちずの はしで きれない ように）
+    const px = s.flipX ? 62 : -62, lx = s.flipX ? 45 : -45, ly = s.flipY ? -86 : 54;
+    return `<g data-id="${s.id}" transform="translate(${s.x},${s.y})">
+      <line x1="0" y1="0" x2="0" y2="46" stroke="#555" stroke-width="5"/>
+      <circle cx="0" cy="-6" r="22" fill="${c}" stroke="#fff" stroke-width="4"/>
+      <text x="0" y="3" font-size="26" fill="#fff" text-anchor="middle" font-weight="bold">${i + 1}</text>
+      <circle cx="${px}" cy="-14" r="30" fill="#fff" stroke="${c}" stroke-width="4"/>
+      ${iconSvg(s.icon, px, -14, 56)}
+      <rect x="${lx - lw / 2}" y="${ly}" width="${lw}" height="32" rx="16" fill="#fff" stroke="${c}" stroke-width="3"/>
+      <text x="${lx}" y="${ly + 23}" font-size="20" text-anchor="middle" fill="#333">${esc(s.label)}</text></g>`;
+  }
+  function goalSvg(g) {
+    const w = Math.max(160, Math.max(len(g.label), len(g.sub) * 0.85) * 21 + 40);
+    // なまえの ばしょ：align 'l'（ひだりへ）/ 'c'（まんなか）/ 'r'（みぎへ）、flipY で うえ
+    const lx = g.align === 'r' ? w / 2 - 44 : g.align === 'l' ? 44 - w / 2 : 0, ly = g.flipY ? -108 : 52;
+    return `<g data-id="goal" transform="translate(${g.x},${g.y})">
+      <circle r="44" fill="#ffca28" stroke="#fff" stroke-width="5"/>
+      ${iconSvg(g.icon, 0, 0, 80)}
+      <rect x="${lx - w / 2}" y="${ly}" width="${w}" height="56" rx="18" fill="#fff" stroke="#f9a825" stroke-width="4"/>
+      <text x="${lx}" y="${ly + 24}" font-size="21" text-anchor="middle" fill="#333">${esc(g.label)}</text>
+      <text x="${lx}" y="${ly + 48}" font-size="17" text-anchor="middle" fill="#e65100">${esc(g.sub)}</text></g>`;
+  }
+
+  function render() {
+    clipN = 0;
+    let h = '';
+    const bg = state.bg;
+    if (bg && bg.show) {
+      h += `<image class="${bg.print ? '' : 'no-print'}" href="${esc(bg.src)}" x="${MAP.x}" y="${MAP.y}" width="${MAP.w}" height="${MAP.h}" preserveAspectRatio="xMidYMid meet" opacity="${bg.opacity}" pointer-events="none"/>`;
+    }
+    state.areas.forEach((a) => { h += areaSvg(a); });
+    state.roads.forEach((r) => { h += roadSvg(r); });
+    state.routes.forEach((r) => { h += routeSvg(r); });
+    state.decos.forEach((d) => {
+      h += `<g data-id="${d.id}">${iconSvg(d.icon, d.x, d.y, d.size)}<circle cx="${d.x}" cy="${d.y}" r="${d.size / 2}" fill="transparent"/></g>`;
+    });
+    state.stops.forEach((s, i) => { h += stopSvg(s, i); });
+    h += goalSvg(state.goal);
+
+    if (draft && draft.pts.length) {
+      const isRoute = draft.type === 'route';
+      const k = ROAD_KINDS[draft.kind] || ROAD_KINDS.mid;
+      h += `<g class="no-print" pointer-events="none">
+        <polyline points="${pts2(draft.pts)}" fill="none" stroke="${isRoute ? '#f08a24' : k.color}" stroke-width="${isRoute ? 9 : k.w}" stroke-linecap="round" stroke-linejoin="round" ${isRoute ? 'stroke-dasharray="18 12"' : (k.dash ? `stroke-dasharray="${k.dash}"` : '')} opacity="0.85"/>
+        ${draft.pts.map((p) => `<circle cx="${p[0]}" cy="${p[1]}" r="7" fill="#2962ff" stroke="#fff" stroke-width="2"/>`).join('')}</g>`;
+    }
+    mapG.innerHTML = h;
+    if (sel) drawSelection();
+    renderSheet();
+    if (view === 'label') renderLabels();
+  }
+
+  function drawSelection() {
+    const f = find(sel);
+    const el = mapG.querySelector(`[data-id="${sel}"]`);
+    if (!f || !el) return;
+    const bb = el.getBBox();
+    let ox = 0, oy = 0;
+    if (f.type === 'stop' || f.type === 'goal') { ox = f.item.x; oy = f.item.y; }
+    let h = `<g class="no-print"><rect x="${bb.x + ox - 8}" y="${bb.y + oy - 8}" width="${bb.width + 16}" height="${bb.height + 16}" rx="10" fill="none" stroke="#2962ff" stroke-width="3" stroke-dasharray="8 6" pointer-events="none"/>`;
+    if (f.type === 'road' || f.type === 'route') {
+      f.item.pts.forEach((p, i) => {
+        h += `<circle data-handle="${i}" data-owner="${sel}" cx="${p[0]}" cy="${p[1]}" r="10" fill="#fff" stroke="#2962ff" stroke-width="3" style="cursor:move"/>`;
+      });
+    }
+    if (f.type === 'area') {
+      const a = f.item;
+      h += `<circle data-handle="resize" data-owner="${sel}" cx="${a.x + a.w}" cy="${a.y + a.h}" r="11" fill="#2962ff" stroke="#fff" stroke-width="3" style="cursor:nwse-resize"/>`;
+    }
+    mapG.insertAdjacentHTML('beforeend', h + '</g>');
+  }
+
+  // ---------- みぎの らん（シール だいし / じゅんばん） ----------
+  const FOLD_X = 685;  // ちずと みぎの らんの あいだ（くびから さげる ときの おりせん）
+  // おりせんと あな：''（なし）/ 'fold'（おりせん だけ。ケース よう）/ 'bottom'（したに あな）/ 'top'（うえに あな）。むかしの true は した
+  const hangPos = () => (state.hang === true ? 'bottom' : state.hang || '');
+  const HANG_HELP = {
+    fold: 'ハードカードケース（B5）などに入れるときに使います。点線で山折りします。穴の印は入りません。',
+    bottom: 'さかさまに下がり、下から持ち上げると正しい向きで見られます。点線で山折りして、○に2穴パンチで穴を空けます。▼をパンチの真ん中に合わせます。',
+    top: '名札のように、正しい向きで下がります。点線で山折りして、○に2穴パンチで穴を空けます。▲をパンチの真ん中に合わせます。',
+  };
+  let sheetFit = { r: 40, want: 40 };
+  // みぎの らんの まるの はんけい（シールを えらんで いれば、シールが はいる おおきさ）
+  function wantR() {
+    if (state.sheetMode === 'order') return 50;
+    const f = state.label.fitMap ? fmt() : null;
+    return f ? (f.d / 2 + 1.5) * MM : 40;
+  }
+  // ちずの わくの ばしょと おおきさ。くびから さげる ときは、パンチの あなの ぶんを あける
+  function layoutMap() {
+    const hp = hangPos(), top = hp === 'top' ? 115 : 85, h = (hp === 'bottom' ? 715 : 775) - top;
+    const s = h / MAP.h, w = MAP.w * s;
+    const x = hp ? (FOLD_X - w) / 2 : 30;
+    for (const id of ['clipRect', 'mapBg', 'mapBorder']) {
+      const el = document.getElementById(id);
+      el.setAttribute('x', x.toFixed(1)); el.setAttribute('y', top);
+      el.setAttribute('width', w.toFixed(1)); el.setAttribute('height', h);
+    }
+    mapG.setAttribute('transform', `translate(${(x - MAP.x * s).toFixed(2)},${(top - MAP.y * s).toFixed(2)}) scale(${s.toFixed(5)})`);
+    return { x, w };
+  }
+  function renderSheet() {
+    const frame = layoutMap(), hp = hangPos();
+    const t = $('#title');
+    const tx = hp ? frame.x + 10 : 40;
+    t.textContent = state.title;
+    t.setAttribute('x', tx.toFixed(1));
+    t.setAttribute('y', hp === 'top' ? 103 : 62);  // うえに あなの ときは あなの したへ
+    t.setAttribute('font-size', Math.min(40, (hp ? FOLD_X - tx - 15 : 1040) / Math.max(1, len(state.title))).toFixed(1));
+
+    const order = state.sheetMode === 'order';
+    const Y = hp === 'bottom'
+      ? { panelH: 630, bottom: 592, hint1: 620, hint2: 648, date: 683 }
+      : { panelH: 690, bottom: 652, hint1: 680, hint2: 708, date: 745 };
+    const n = state.stops.length, N = n + 1;
+    const want = wantR();
+    const top = n ? 192 : 235, bottom = Y.bottom, x0 = 714, W = 365;
+    // まるが いちばん おおきく なる ならべかた（1〜3れつ）を えらぶ
+    let best = null;
+    for (let c = 1; c <= 3; c++) {
+      const rows = Math.ceil(N / c), cw = W / c, ch = (bottom - top) / rows;
+      const max = c === 1 ? Math.min(ch / 2 - 5, 62) : Math.min((cw - 10) / 2, (ch - 34) / 2);
+      const r = Math.min(want, max);
+      if (!best || r > best.r + 0.5) best = { c, cw, ch, r };
+      if (r >= want) break;
+    }
+    const { c, cw, ch, r } = best;
+    sheetFit = { r, want };
+
+    let h = `<rect x="700" y="85" width="393" height="${Y.panelH}" rx="24" fill="#fff" stroke="#f9a825" stroke-width="4"/>`;
+    h += order
+      ? `<text x="896" y="150" font-size="30" text-anchor="middle" fill="#e65100" font-weight="bold">いく じゅんばん</text>`
+      : `<text x="896" y="135" font-size="28" text-anchor="middle" fill="#e65100" font-weight="bold">みつけたら</text>
+      <text x="896" y="172" font-size="28" text-anchor="middle" fill="#e65100" font-weight="bold">シールを はろう！</text>`;
+    if (!n) h += `<text class="no-print" x="896" y="212" font-size="18" text-anchor="middle" fill="#a0a8b0">バス停を置くと、ここに出ます</text>`;
+    const items = state.stops.map((s, i) => ({ color: s.color, num: String(i + 1), label: s.label, icon: s.icon }));
+    items.push({ goal: true, color: '#f9a825', icon: state.goal.icon });
+    // シールの ときは てんせんの まる、じゅんばんの ときは え・しゃしんの まる
+    const mark = (it, cx, cy) => order
+      ? `<circle cx="${cx}" cy="${cy}" r="${r.toFixed(1)}" fill="#fff" stroke="${it.color}" stroke-width="5"/>${iconSvg(it.icon, cx, cy, r * 1.8)}`
+      : `<circle cx="${cx}" cy="${cy}" r="${r.toFixed(1)}" fill="none" stroke="${it.color}" stroke-width="${it.goal ? 5 : 4}" stroke-dasharray="10 7"/>`;
+    items.forEach((it, i) => {
+      const col = i % c, row = Math.floor(i / c);
+      const cellX = x0 + col * cw, cellY = top + row * ch;
+      if (c === 1) {
+        // 1れつ：ひだりに ばんごうと なまえ、みぎに まる
+        const cy = cellY + ch / 2, cx = x0 + W - r - 8;
+        if (it.goal) {
+          const fs = Math.min(26, ch * 0.28), tx2 = x0 + 22 + fs * 1.8, two = ch > 80;
+          h += `<rect x="${x0 + 6}" y="${cellY + 5}" width="${W - 12}" height="${ch - 10}" rx="22" fill="#fff8e1" stroke="#f9a825" stroke-width="4"/>
+            <text x="${x0 + 20}" y="${cy}" font-size="${(fs * 1.3).toFixed(1)}" dominant-baseline="central">🏁</text>
+            <text x="${tx2}" y="${two ? cy - fs * 0.55 : cy}" font-size="${fs.toFixed(1)}" dominant-baseline="central" fill="#e65100" font-weight="bold">ゴール！</text>`;
+          if (two) h += `<text x="${tx2}" y="${cy + fs * 0.75}" font-size="${(fs * 0.77).toFixed(1)}" dominant-baseline="central" fill="#333">ついたよ！</text>`;
+        } else {
+          const nr = Math.min(24, ch * 0.26), bx = x0 + 10 + nr;
+          const fs = Math.min(22, (cx - r - 12 - (bx + nr + 12)) / Math.max(1, len(it.label)), ch * 0.42);
+          h += `<circle cx="${bx}" cy="${cy}" r="${nr}" fill="${it.color}"/>
+            <text x="${bx}" y="${cy}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="${(nr * 1.1).toFixed(1)}" font-weight="bold">${it.num}</text>
+            <text x="${bx + nr + 12}" y="${cy}" dominant-baseline="central" font-size="${fs.toFixed(1)}" fill="#333">${esc(it.label)}</text>`;
+          // じゅんばんの ときは つぎへの やじるし
+          if (order) h += `<text x="${bx}" y="${cellY + ch}" text-anchor="middle" dominant-baseline="central" font-size="16" fill="#f0a35e">▼</text>`;
+        }
+        h += mark(it, cx, cy);
+      } else {
+        // 2〜3れつ：まるの したに なまえ
+        const cx = cellX + cw / 2, cy = cellY + (ch - 30) / 2;
+        const nr = Math.min(20, r * 0.34), bx = cx - r * 0.74, by = cy - r * 0.74;
+        if (it.goal) h += `<rect x="${cellX + 4}" y="${cellY + 2}" width="${cw - 8}" height="${ch - 4}" rx="18" fill="#fff8e1" stroke="#f9a825" stroke-width="3"/>`;
+        h += mark(it, cx, cy);
+        if (it.goal) h += `<text x="${bx}" y="${by}" font-size="${(nr * 1.6).toFixed(1)}" text-anchor="middle" dominant-baseline="central">🏁</text>`;
+        else h += `<circle cx="${bx}" cy="${by}" r="${nr}" fill="${it.color}" stroke="#fff" stroke-width="3"/>
+          <text x="${bx}" y="${by}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-size="${(nr * 1.1).toFixed(1)}" font-weight="bold">${it.num}</text>`;
+        const label = it.goal ? 'ゴール！' : it.label;
+        const fs = Math.min(20, (cw - 12) / Math.max(1, len(label)));
+        h += `<text x="${cx}" y="${cy + r + 22}" font-size="${fs.toFixed(1)}" text-anchor="middle" dominant-baseline="central" fill="${it.goal ? '#e65100' : '#333'}"${it.goal ? ' font-weight="bold"' : ''}>${esc(label)}</text>`;
+      }
+    });
+    h += `<text x="896" y="${Y.hint1}" font-size="19" text-anchor="middle" fill="#7a8794">${esc(state.hint1)}</text>
+      <text x="896" y="${Y.hint2}" font-size="19" text-anchor="middle" fill="#7a8794">${esc(state.hint2)}</text>
+      <text x="896" y="${Y.date}" font-size="15" text-anchor="middle" fill="#a0a8b0">ねん　　がつ　　にち</text>`;
+    if (hp) {
+      // おりせん
+      h += `<line x1="${FOLD_X}" y1="0" x2="${FOLD_X}" y2="794" fill="none" stroke="#9e9e9e" stroke-width="1.5" stroke-dasharray="8 6"/>
+        <text x="${FOLD_X + 6}" y="22" font-size="12" fill="#9e9e9e">山折り</text>`;
+    }
+    if (hp === 'top' || hp === 'bottom') {
+      // 2あなパンチの あな（あいだ 80mm、はしから 12mm、ちょっけい 6mm）
+      const hy = hp === 'top' ? 12 * MM : 794 - 12 * MM, hr = 3 * MM, hc = FOLD_X / 2, hd = 40 * MM;
+      h += `<g fill="none" stroke="#9e9e9e" stroke-width="1.5">
+          <circle cx="${(hc - hd).toFixed(1)}" cy="${hy.toFixed(1)}" r="${hr.toFixed(1)}"/>
+          <circle cx="${(hc + hd).toFixed(1)}" cy="${hy.toFixed(1)}" r="${hr.toFixed(1)}"/></g>
+        <text x="${hc}" y="${(hy + 2).toFixed(1)}" font-size="14" text-anchor="middle" dominant-baseline="central" fill="#9e9e9e">${hp === 'top' ? '▲' : '▼'}</text>`;
+    }
+    sheetG.innerHTML = h;
+  }
+
+  // ---------- シールの いんさつ ----------
+  function fmt() {
+    const L = state.label;
+    if (L.key === 'custom') return Object.assign({ key: 'custom', name: '自分で入れた寸法' }, L.custom);
+    return LABELS.find((x) => x.key === L.key) || null;
+  }
+  function normCode(v) {
+    return String(v || '').replace(/[０-９]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0)).replace(/\D/g, '');
+  }
+  function findCode(v) {
+    const code = normCode(v);
+    return code ? LABELS.find((x) => x.codes.includes(code)) : null;
+  }
+  function setPageCss() {
+    const f = view === 'label' ? fmt() : null;
+    const P = f ? (PAPERS[f.paper] || PAPERS.A4) : null;
+    $('#pageCss').textContent = P ? `@page { size: ${P.w}mm ${P.h}mm; margin: 0; }` : '@page { size: A4 landscape; margin: 0; }';
+  }
+
+  // 1まいの シール（すうじは mm）。b は まわりに すこし はみださせる はば
+  function stickerSvg(it, cx, cy, d, b, id) {
+    const L = state.label, r = d / 2, rb = r + b;
+    const ring = L.ring ? Math.max(1.2, d * 0.07) : 0;
+    const named = L.name && d >= 30 && it.label;
+    let h = `<clipPath id="${id}"><circle cx="${cx}" cy="${cy}" r="${rb}"/></clipPath>
+      <g clip-path="url(#${id})"><rect x="${cx - rb}" y="${cy - rb}" width="${2 * rb}" height="${2 * rb}" fill="#fff"/>`;
+    const ic = it.icon;
+    if (ic && ic.t === 'img') {
+      h += `<image href="${esc(ic.v)}" x="${cx - rb}" y="${cy - rb}" width="${2 * rb}" height="${2 * rb}" preserveAspectRatio="xMidYMid slice"/>`;
+    } else {
+      h += iconSvg(ic, cx, named ? cy - r * 0.16 : cy, d * (named ? 0.78 : 0.95));
+    }
+    if (named) {
+      const fs = Math.min(d * 0.13, ((r - ring) * 1.3) / Math.max(1, len(it.label)));
+      h += `<rect x="${cx - rb}" y="${cy + r * 0.3}" width="${2 * rb}" height="${r * 0.44}" fill="#fff" opacity="0.9"/>
+        <text x="${cx}" y="${cy + r * 0.52}" font-size="${fs.toFixed(2)}" text-anchor="middle" dominant-baseline="central" fill="#333" font-weight="bold">${esc(it.label)}</text>`;
+    }
+    h += '</g>';
+    if (ring) h += `<circle cx="${cx}" cy="${cy}" r="${(r - ring + rb) / 2}" fill="none" stroke="${it.color}" stroke-width="${rb - r + ring}"/>`;
+    if (L.num && it.num) {
+      const br = Math.max(2.6, d * 0.15), off = (r - br - 0.3) * Math.SQRT1_2;
+      h += `<circle cx="${cx + off}" cy="${cy - off}" r="${br}" fill="${it.color}" stroke="#fff" stroke-width="0.5"/>
+        <text x="${cx + off}" y="${cy - off}" font-size="${(br * 1.3).toFixed(2)}" text-anchor="middle" dominant-baseline="central" fill="#fff" font-weight="bold">${it.num}</text>`;
+    }
+    return h;
+  }
+
+  function renderLabels() {
+    const f = fmt(), L = state.label, lsvg = $('#lsvg'), note = $('#lnote'), sheet = $('#lsheet');
+    const P = f ? (PAPERS[f.paper] || PAPERS.A4) : PAPERS.A4;
+    lsvg.setAttribute('viewBox', `0 0 ${P.w} ${P.h}`);
+    sheet.style.setProperty('--pw', P.w + 'mm');
+    sheet.style.setProperty('--ph', P.h + 'mm');
+    sheet.style.maxWidth = (P === PAPERS.A4 ? 520 : 360) + 'px';
+    setPageCss();
+    note.classList.remove('warn');
+    if (!f) {
+      lsvg.innerHTML = `<rect width="${P.w}" height="${P.h}" fill="#fff"/>
+        <text x="${P.w / 2}" y="140" font-size="8" text-anchor="middle" fill="#a0a8b0">右でシール用紙を</text>
+        <text x="${P.w / 2}" y="152" font-size="8" text-anchor="middle" fill="#a0a8b0">選んでください</text>`;
+      note.textContent = '';
+      return;
+    }
+    const cols = Math.max(0, Math.floor(f.cols)), rows = Math.max(0, Math.floor(f.rows)), total = cols * rows;
+    const items = state.stops.map((s, i) => ({ icon: s.icon, color: s.color, label: s.label, num: String(i + 1) }));
+    if (L.goal) items.push({ icon: state.goal.icon, color: '#f9a825', label: state.goal.label, num: '' });
+    const skip = Math.min(Math.max(0, Math.floor(L.skip) || 0), total);
+    const count = !items.length ? 0 : L.fill ? total - skip : Math.min(items.length, total - skip);
+    const b = Math.max(0, Math.min(1, f.gx / 2, f.gy / 2));
+    let body = '', guide = '', skipped = '';
+    for (let k = 0; k < total; k++) {
+      const col = k % cols, row = Math.floor(k / cols);
+      const cx = f.left + f.d / 2 + col * (f.d + f.gx), cy = f.top + f.d / 2 + row * (f.d + f.gy);
+      const j = k - skip;
+      if (k < skip) skipped += `<circle cx="${cx}" cy="${cy}" r="${f.d / 2}" fill="#eceff1"/>`;
+      else if (j < count) body += stickerSvg(items[j % items.length], cx, cy, f.d, b, 'lc' + k);
+      guide += `<circle data-slot="${k}" cx="${cx}" cy="${cy}" r="${f.d / 2}" fill="transparent" stroke="#90a4ae" stroke-width="0.3" stroke-dasharray="1.2 1"/>`;
+    }
+    lsvg.innerHTML = `<rect width="${P.w}" height="${P.h}" fill="#fff"/>
+      <g transform="translate(${+L.dx || 0},${+L.dy || 0})">
+        <g class="no-print">${skipped}</g>${body}<g class="${L.guide ? '' : 'no-print'}">${guide}</g>
+      </g>`;
+    const maxX = f.left + cols * f.d + (cols - 1) * f.gx, maxY = f.top + rows * f.d + (rows - 1) * f.gy;
+    if (maxX > P.w + 0.1 || maxY > P.h + 0.1) {
+      note.textContent = '⚠ 寸法が紙からはみ出しています。数字を確かめてください。';
+      note.classList.add('warn');
+    } else if (!items.length) {
+      note.textContent = 'バス停を置くと、シールが出ます。';
+    } else {
+      const sets = Math.floor(count / items.length), rest = count % items.length;
+      note.textContent = `${P.label}・直径 ${f.d}mm・${total}面 ／ 印刷するシール ${count}枚（${sets}セット${rest ? `と${rest}枚` : ''}）`;
+    }
+  }
+
+  function setView(v) {
+    if (v === 'label') { if (draft) finishDraft(true); sel = null; drag = null; }
+    view = v;
+    showMaps = false;
+    document.body.classList.toggle('labels', v === 'label');
+    $('#labelBtn').classList.toggle('active', v === 'label');
+    $('#print').textContent = v === 'label' ? '🖨 シールを印刷' : '🖨 印刷';
+    document.querySelectorAll('#modes button').forEach((b) => b.classList.toggle('active', v === 'map' && b.dataset.mode === mode));
+    setPageCss();
+    say(v === 'label' ? 'シール用紙を選ぶと、左に印刷するシールが出ます。' : MODE_HELP[mode]);
+    render(); renderPanel();
+  }
+  function printLabels() {
+    if (!fmt()) { say('先にシール用紙を選んでください。', true); return; }
+    setPageCss();
+    setTimeout(() => window.print(), 50);
+  }
+
+  function labelPanel() {
+    const L = state.label, f = fmt(), c = L.custom;
+    const opt = (k, t, cur) => `<option value="${k}"${cur === k ? ' selected' : ''}>${t}</option>`;
+    const chk = (k, t) => `<label><input type="checkbox" data-lfield="${k}"${L[k] ? ' checked' : ''}> ${t}</label>`;
+    let h = `<h3>🏷 シールを作る</h3>
+      <p>バス停の絵・写真・色・番号で、丸いシールを作ります。写真は、バス停の「📷 写真を使う」で入れたものが使われます。</p>
+      <h4>① シール用紙</h4>
+      <label>品番（袋に書いてある5けたの数字）<input type="text" inputmode="numeric" data-lfield="code" value="${esc(L.code)}" placeholder="例：28814"></label>
+      <div id="codeMsg" class="msg"></div>
+      <label>または一覧から選ぶ<select data-lfield="key">${opt('', '選んでください', L.key)}${LABELS.map((x) => opt(x.key, x.name, L.key)).join('')}${opt('custom', '自分で寸法を入れる', L.key)}</select></label>`;
+    if (f && f.codes) h += `<p class="small">同じ並びのエーワンの品番：${f.codes.join('、')}</p>`;
+    if (L.key === 'custom') {
+      const num = (k, t, step) => `<label>${t}<input type="number" step="${step || 0.5}" min="0" data-lfield="c.${k}" value="${c[k]}"></label>`;
+      h += `<label>紙の大きさ<select data-lfield="c.paper">${Object.keys(PAPERS).map((p) => opt(p, PAPERS[p].label, c.paper)).join('')}</select></label>
+        <div class="grid2">${num('d', '丸の直径')}<span></span>${num('cols', '横の数', 1)}${num('rows', '縦の数', 1)}${num('left', '左の余白')}${num('top', '上の余白')}${num('gx', '横のすき間')}${num('gy', '縦のすき間')}</div>
+        <p class="small">数字は mm です。袋の裏や、メーカーのホームページの「寸法図」に書いてあります。</p>`;
+    }
+    h += `<h4>② シールの中身</h4>
+      ${chk('ring', '色のわく')}${chk('num', '番号')}${chk('name', '名前（直径30mm以上のシールだけ）')}${chk('goal', 'ゴールのシールも作る')}
+      ${chk('fitMap', '地図の丸をシールの大きさに合わせる')}
+      <div id="fitMsg" class="msg"></div>
+      <h4>③ 印刷する枚数</h4>
+      <label><input type="radio" name="lfill" data-lfield="fill" value="all"${L.fill ? ' checked' : ''}> シートいっぱいにくり返す</label>
+      <label><input type="radio" name="lfill" data-lfield="fill" value="one"${L.fill ? '' : ' checked'}> 1セットだけ</label>
+      <label>使ったシールをとばす <input type="number" min="0" step="1" data-lfield="skip" value="${L.skip}"> 枚</label>
+      <p class="small">左の図の丸をクリックすると、そこから印刷します（使いかけのシートに便利）。</p>
+      <h4>④ ずれの調整</h4>
+      ${chk('guide', '丸の線も印刷する（試し刷り）')}
+      <div class="grid2"><label>右へ（mm）<input type="number" step="0.5" data-lfield="dx" value="${L.dx}"></label><label>下へ（mm）<input type="number" step="0.5" data-lfield="dy" value="${L.dy}"></label></div>
+      <p class="small">マイナスにすると、左・上に動きます。</p>
+      <h4>印刷のしかた</h4><ol>
+        <li>最初は普通紙に「丸の線も印刷する」で試し刷りします。</li>
+        <li>シール用紙と重ねて窓にすかし、ずれていたら④で直します。</li>
+        <li>印刷の画面で「倍率 100%」、用紙サイズは「${f ? (PAPERS[f.paper] || PAPERS.A4).label : 'A4'}」にします。</li>
+        <li>用紙の種類は、袋に書いてある設定（普通紙・光沢紙など）にします。</li></ol>
+      <div class="row"><button class="primary" data-act="printLabels">🖨 シールを印刷</button><button data-act="backMap">🗺 地図にもどる</button></div>`;
+    return h;
+  }
+  function updateLabelMsgs() {
+    const L = state.label, cm = $('#codeMsg'), fm = $('#fitMsg');
+    if (cm) {
+      const code = normCode(L.code), hit = findCode(code);
+      cm.classList.toggle('ok', !!hit);
+      if (hit) cm.textContent = `✔ ${code} は「${hit.name}」です。`;
+      else if (code.length >= 5) cm.textContent = 'この品番はまだ登録されていません。一覧の「自分で寸法を入れる」を選んで、袋の裏の寸法を入れてください。';
+      else cm.textContent = '';
+    }
+    if (fm) {
+      const f = fmt(), on = f && L.fitMap && state.sheetMode !== 'order';
+      const small = on && sheetFit.r < sheetFit.want - 0.5;
+      fm.classList.toggle('ok', !!on && !small);
+      if (small) fm.textContent = `⚠ バス停が多いため、地図の丸（約${Math.round(sheetFit.r * 2 / MM)}mm）がシール（${f.d}mm）より小さくなります。小さいシールにするか、バス停を減らしてください。`;
+      else if (on) fm.textContent = `地図の丸は、シール（${f.d}mm）が入る大きさになっています。`;
+      else if (f && state.sheetMode === 'order') fm.textContent = 'いまの地図は「順番だけ」なので、シールを貼る丸はありません（「地図の設定」で変えられます）。';
+      else fm.textContent = '';
+    }
+  }
+  function renderPanelKeepFocus() {
+    const a = document.activeElement;
+    const k = a && panelEl.contains(a) && a.type !== 'radio' ? a.dataset.lfield : null;
+    renderPanel();
+    if (!k) return;
+    const el = panelEl.querySelector(`[data-lfield="${k}"]`);
+    if (!el) return;
+    el.focus();
+    if (el.type === 'text') el.setSelectionRange(el.value.length, el.value.length);
+  }
+  function onLabelInput(el) {
+    const L = state.label, k = el.dataset.lfield;
+    let rebuild = el.type === 'checkbox' || el.type === 'radio';
+    if (k === 'code') {
+      L.code = el.value;
+      const hit = findCode(el.value);
+      if (hit && L.key !== hit.key) { L.key = hit.key; rebuild = true; }
+    } else if (k === 'key') {
+      L.key = el.value;
+      const hit = findCode(L.code);
+      if (L.code && (!hit || hit.key !== L.key)) L.code = '';
+      rebuild = true;
+    } else if (k === 'fill') {
+      L.fill = el.value === 'all';
+    } else if (k.startsWith('c.')) {
+      const ck = k.slice(2);
+      L.custom[ck] = ck === 'paper' ? el.value : (parseFloat(el.value) || 0);
+      rebuild = ck === 'paper';
+    } else if (el.type === 'checkbox') {
+      L[k] = el.checked;
+    } else {
+      L[k] = parseFloat(el.value) || 0;
+    }
+    persist(); render();
+    if (rebuild) renderPanelKeepFocus(); else updateLabelMsgs();
+  }
+  $('#lsvg').addEventListener('click', (e) => {
+    const t = e.target.closest('[data-slot]');
+    if (!t) return;
+    state.label.skip = +t.dataset.slot;
+    persist(); renderLabels(); renderPanelKeepFocus();
+  });
+
+  // ---------- そうさ ----------
+  function toMap(e) {
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    const p = pt.matrixTransform(mapG.getScreenCTM().inverse());
+    return { x: R(p.x), y: R(p.y) };
+  }
+  const MODE_HELP = {
+    select: '地図の中のものをクリックして選ぶと、動かしたり直したりできます。',
+    route: '地図を順番にクリックしてコースをかきます。1本かけたら「できた」（ダブルクリックでも OK）。続けて次のコースもかけます。',
+    road: '地図を順番にクリックして道をかきます。1本かけたら「できた」（ダブルクリックでも OK）。続けて次の道もかけます。',
+    stop: 'バス停を置きたい場所をクリックしてください。名前を入れたら、続けて次の場所をクリックできます。',
+    deco: '右で絵を選んで、地図をクリックすると置けます。続けていくつでも置けます。',
+    area: '地図の上でななめにドラッグするとかけます。クリックだけだと、前と同じ大きさで置けます。',
+  };
+  const DONE_HELP = '終わったら「👆 選ぶ・動かす」を押すか、Esc キー。';
+  function setMode(m) {
+    if (draft && m !== draft.type) finishDraft(true);
+    mode = m;
+    showMaps = false;
+    if (m !== 'select') sel = null;
+    document.querySelectorAll('#modes button').forEach((b) => b.classList.toggle('active', b.dataset.mode === m));
+    say(MODE_HELP[m]);
+    render(); renderPanel();
+  }
+  // 1ぽん かきおえる。silent でなければ おなじ モードの まま つづけて かける
+  function finishDraft(silent) {
+    if (!draft) return;
+    const type = draft.type;
+    if (draft.pts.length >= 2) {
+      commit();
+      const o = { id: uid(), pts: draft.pts };
+      if (type === 'road') { o.kind = draft.kind; state.roads.push(o); } else state.routes.push(o);
+    }
+    draft = null;
+    persist();
+    if (silent) return;
+    render(); renderPanel();
+    say(`${type === 'road' ? '道' : 'コース'}ができました。続けて次の${type === 'road' ? '道' : 'コース'}をかけます。${DONE_HELP}`);
+  }
+
+  svg.addEventListener('pointerdown', (e) => {
+    if (e.button !== undefined && e.button > 0) return;
+    e.preventDefault();
+    showMaps = false;
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    const p = toMap(e);
+    const t = e.target;
+    if (mode === 'select') {
+      const hdl = t.closest('[data-handle]');
+      if (hdl) {
+        drag = { kind: hdl.dataset.handle === 'resize' ? 'resize' : 'point', id: hdl.dataset.owner, idx: +hdl.dataset.handle, start: p, snap: JSON.stringify(state) };
+        svg.setPointerCapture(e.pointerId);
+        return;
+      }
+      const it = t.closest('[data-id]');
+      if (it) {
+        sel = it.dataset.id;
+        drag = { kind: 'move', id: sel, start: p, orig: JSON.parse(JSON.stringify(find(sel).item)), snap: JSON.stringify(state) };
+        svg.setPointerCapture(e.pointerId);
+        render(); renderPanel();
+        return;
+      }
+      sel = null; render(); renderPanel();
+      return;
+    }
+    if (mode === 'road' || mode === 'route') {
+      if (!draft) draft = { type: mode, kind: roadKind, pts: [] };
+      const last = draft.pts[draft.pts.length - 1];
+      if (!last || Math.hypot(last[0] - p.x, last[1] - p.y) > 4) draft.pts.push([p.x, p.y]);
+      render(); renderPanel();
+      return;
+    }
+    if (mode === 'stop') {
+      commit();
+      const s = { id: uid(), x: p.x, y: p.y, label: 'なまえ', color: stopColor || COLORS[state.stops.length % COLORS.length], icon: { t: 'emoji', v: '⭐' } };
+      state.stops.push(s);
+      // 「バスていを おく」の まま、いま おいた バスていの なまえを いれられる ように する
+      sel = s.id;
+      render(); renderPanel(); persist();
+      say(`バス停 ${state.stops.length} を置きました。右で名前を入れて Enter。次の場所をクリックすると、次のバス停を置けます。`);
+      const inp = panelEl.querySelector('[data-field=label]');
+      if (inp) { inp.focus(); inp.select(); }
+      return;
+    }
+    if (mode === 'deco') {
+      commit();
+      const d = { id: uid(), icon: JSON.parse(JSON.stringify(decoIcon)), x: p.x, y: p.y, size: decoSize };
+      state.decos.push(d);
+      render(); persist();
+      say(`絵を置きました。続けて置けます。${DONE_HELP}`);
+      return;
+    }
+    if (mode === 'area') {
+      const snap = JSON.stringify(state);
+      const a = { id: uid(), kind: areaKind, x: p.x, y: p.y, w: 1, h: 1 };
+      state.areas.push(a);
+      drag = { kind: 'newarea', id: a.id, start: p, snap };
+      svg.setPointerCapture(e.pointerId);
+    }
+  });
+
+  svg.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const p = toMap(e);
+    const f = find(drag.id);
+    if (!f) return;
+    const dx = p.x - drag.start.x, dy = p.y - drag.start.y;
+    if (!drag.moved && Math.hypot(dx, dy) < 3) return;
+    drag.moved = true;
+    const it = f.item;
+    if (drag.kind === 'move') {
+      if (it.pts) it.pts = drag.orig.pts.map(([x, y]) => [x + dx, y + dy]);
+      else { it.x = drag.orig.x + dx; it.y = drag.orig.y + dy; }
+    } else if (drag.kind === 'point') {
+      it.pts[drag.idx] = [p.x, p.y];
+    } else if (drag.kind === 'resize') {
+      it.w = Math.max(20, p.x - it.x); it.h = Math.max(20, p.y - it.y);
+    } else if (drag.kind === 'newarea') {
+      it.x = Math.min(drag.start.x, p.x); it.y = Math.min(drag.start.y, p.y);
+      it.w = Math.abs(p.x - drag.start.x); it.h = Math.abs(p.y - drag.start.y);
+    }
+    render();
+  });
+
+  function endDrag() {
+    if (!drag) return;
+    if (drag.kind === 'newarea') {
+      const a = find(drag.id).item;
+      if (a.w < 15 || a.h < 15) {
+        // タップだけ：まえと おなじ おおきさで、タップした ところを まんなかに おく
+        a.w = areaSize.w; a.h = areaSize.h;
+        a.x = R(drag.start.x - a.w / 2); a.y = R(drag.start.y - a.h / 2);
+      } else {
+        areaSize = { w: a.w, h: a.h };
+      }
+      undoStack.push(drag.snap);
+      drag = null;
+      render(); renderPanel(); persist();
+      say(`${AREA_KINDS[a.kind]}をかきました。続けてかけます。${DONE_HELP}`);
+      return;
+    }
+    if (drag.kind === 'resize' && drag.moved) {
+      const a = find(drag.id).item;
+      areaSize = { w: a.w, h: a.h };
+    }
+    if (drag.moved) { undoStack.push(drag.snap); persist(); }
+    drag = null;
+    render(); renderPanel();
+  }
+  svg.addEventListener('pointerup', endDrag);
+  svg.addEventListener('pointercancel', endDrag);
+  svg.addEventListener('dblclick', () => { if (draft) finishDraft(); });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.target.matches('input, textarea')) return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd' && sel) { e.preventDefault(); duplicateSelected(); return; }
+    if (e.key === 'Enter' && draft) finishDraft();
+    if (e.key === 'Escape') { draft = null; sel = null; setMode('select'); }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && sel) { e.preventDefault(); removeSelected(); }
+  });
+
+  function removeSelected() {
+    const f = find(sel);
+    if (!f || f.type === 'goal') return;
+    commit();
+    f.arr.splice(f.arr.indexOf(f.item), 1);
+    sel = null;
+    changed();
+  }
+
+  // えらんで いる ばしょ・えと おなじ ものを ふやす（おおきさも おなじ）
+  function duplicateSelected() {
+    const f = sel ? find(sel) : null;
+    if (!f || (f.type !== 'area' && f.type !== 'deco')) return;
+    commit();
+    const o = JSON.parse(JSON.stringify(f.item));
+    o.id = uid();
+    const gap = 10;
+    const w = f.type === 'area' ? o.w : o.size, h = f.type === 'area' ? o.h : o.size;
+    // みぎどなりに おく。はいらなければ した、それも だめなら すこし ずらす
+    if (o.x + w * (f.type === 'area' ? 2 : 1.5) + gap <= MAP.x + MAP.w) o.x += w + gap;
+    else if (o.y + h * (f.type === 'area' ? 2 : 1.5) + gap <= MAP.y + MAP.h) o.y += h + gap;
+    else { o.x += 20; o.y += 20; }
+    f.arr.push(o);
+    if (f.type === 'area') areaSize = { w: o.w, h: o.h };
+    sel = o.id;
+    changed();
+    say('同じものをふやしました。ドラッグして場所を合わせてください。');
+  }
+
+  // ---------- みぎの パネル ----------
+  function iconPicker(current) {
+    const same = (ic) => current && ic.t === current.t && ic.v === current.v;
+    let h = '<div class="picker">';
+    EMOJIS.forEach((v) => { h += `<button data-act="icon" data-t="emoji" data-v="${v}" class="${same({ t: 'emoji', v }) ? 'active' : ''}">${v}</button>`; });
+    h += `<button data-act="icon" data-t="tofu" title="とうふ" class="${current && current.t === 'tofu' ? 'active' : ''}"><svg viewBox="-24 -20 48 40">${tofuSvg(0, 0, 40)}</svg></button>`;
+    h += '</div><label class="upload">📷 写真を使う <input type="file" accept="image/*,.heic,.heif" data-upload="icon"></label>';
+    if (current && current.t === 'img') h += '<div class="row"><button data-act="cropPhoto">✂ 写真の位置と大きさを合わせる</button></div>';
+    return h;
+  }
+  function swatches(current) {
+    return '<div class="row swatches">' + COLORS.map((c) => `<button data-act="color" data-v="${c}" style="background:${c}" class="${c === current ? 'active' : ''}" aria-label="色"></button>`).join('') + '</div>';
+  }
+  function exitButton() {
+    return `<hr><p class="small">${DONE_HELP}</p><button data-act="exitMode">👆 終わる（選ぶ・動かすへ）</button>`;
+  }
+  function kindButtons(kinds, current, act) {
+    return '<div class="row">' + Object.entries(kinds).map(([k, v]) => `<button data-act="${act}" data-v="${k}" class="${k === current ? 'active' : ''}">${typeof v === 'string' ? v : v.label}</button>`).join('') + '</div>';
+  }
+
+  function renderPanel() {
+    $('#mapsBtn').classList.toggle('active', showMaps && view === 'map');
+    if (view === 'label') { panelEl.innerHTML = labelPanel(); updateLabelMsgs(); return; }
+    if (showMaps) { panelEl.innerHTML = mapsPanel(); return; }
+    let h = '';
+    const f = sel ? find(sel) : null;
+    if (mode === 'route' || mode === 'road') {
+      h += `<h3>${mode === 'route' ? 'コースをかく' : '道をかく'}</h3><p>${MODE_HELP[mode]}</p>`;
+      if (mode === 'road') h += `<h4>道の種類</h4>${kindButtons(ROAD_KINDS, roadKind, 'roadKind')}`;
+      h += `<div class="row"><button class="primary" data-act="finish">✔ できた</button><button data-act="undoPoint">1つもどす</button><button data-act="cancelDraft">この線をやめる</button></div>`;
+      h += `<p>いま ${draft ? draft.pts.length : 0} 点</p>${exitButton()}`;
+    } else if (mode === 'stop' && !(f && f.type === 'stop')) {
+      h += `<h3>バス停を置く</h3><p>${MODE_HELP.stop}</p><h4>色</h4>${swatches(stopColor || COLORS[state.stops.length % COLORS.length])}${exitButton()}`;
+    } else if (mode === 'deco') {
+      h += `<h3>絵を置く</h3><p>${MODE_HELP.deco}</p>
+        <label>これから置く絵の大きさ<input type="range" min="30" max="140" data-field="nextSize" value="${decoSize}"></label>
+        ${iconPicker(decoIcon)}${exitButton()}`;
+    } else if (mode === 'area') {
+      h += `<h3>場所をかく</h3><p>${MODE_HELP.area}</p>${kindButtons(AREA_KINDS, areaKind, 'areaKind')}
+        <p class="small">クリックだけで置くときの大きさ：横 ${R(areaSize.w)} × 縦 ${R(areaSize.h)}</p>${exitButton()}`;
+    } else if (f && f.type === 'stop') {
+      const i = state.stops.indexOf(f.item);
+      if (mode === 'stop') h += `<p class="msg ok">名前を入れたら、地図の次の場所をクリックすると、次のバス停を置けます。</p>`;
+      h += `<h3>🚏 バス停 ${i + 1}</h3>
+        <label>名前<input type="text" data-field="label" value="${esc(f.item.label)}"></label>
+        <h4>色</h4>${swatches(f.item.color)}
+        <h4>絵・写真</h4>${iconPicker(f.item.icon)}
+        <h4>順番</h4><div class="row"><button data-act="up">◀ 前へ</button><button data-act="down">後ろへ ▶</button></div>
+        <h4>写真と名前の位置</h4>
+        <div class="row"><button data-act="flipX" data-v="0" class="${f.item.flipX ? '' : 'active'}">写真を左</button><button data-act="flipX" data-v="1" class="${f.item.flipX ? 'active' : ''}">写真を右</button></div>
+        <div class="row"><button data-act="flipY" data-v="0" class="${f.item.flipY ? '' : 'active'}">名前を下</button><button data-act="flipY" data-v="1" class="${f.item.flipY ? 'active' : ''}">名前を上</button></div>
+        <p class="small">地図のはしで写真や名前が切れるときに使います。</p>
+        <hr><button class="danger" data-act="delete">このバス停を消す</button>`;
+      if (mode === 'stop') h += exitButton();
+    } else if (f && f.type === 'goal') {
+      h += `<h3>🏁 スタート・ゴール</h3>
+        <label>名前<input type="text" data-field="label" value="${esc(f.item.label)}"></label>
+        <label>下の言葉<input type="text" data-field="sub" value="${esc(f.item.sub)}"></label>
+        <h4>絵・写真</h4>${iconPicker(f.item.icon)}
+        <h4>名前の位置</h4>
+        <div class="row">${[['l', '左へ'], ['c', 'まんなか'], ['r', '右へ']].map(([v, t]) => `<button data-act="goalAlign" data-v="${v}" class="${(f.item.align || 'c') === v ? 'active' : ''}">${t}</button>`).join('')}</div>
+        <div class="row"><button data-act="flipY" data-v="0" class="${f.item.flipY ? '' : 'active'}">名前を下</button><button data-act="flipY" data-v="1" class="${f.item.flipY ? 'active' : ''}">名前を上</button></div>
+        <p class="small">地図のはしで名前が切れるときに使います。</p>`;
+    } else if (f && f.type === 'deco') {
+      h += `<h3>絵</h3>
+        <label>大きさ<input type="range" min="30" max="140" data-field="size" value="${f.item.size}"></label>
+        ${iconPicker(f.item.icon)}
+        <div class="row"><button data-act="duplicate">＋ 同じ絵をふやす</button></div>
+        <hr><button class="danger" data-act="delete">この絵を消す</button>`;
+    } else if (f && (f.type === 'road' || f.type === 'route')) {
+      h += `<h3>${f.type === 'route' ? 'コース' : '道'}</h3><p>白い丸をドラッグすると、形を変えられます。線をドラッグすると、全体が動きます。</p>`;
+      if (f.type === 'road') h += `<h4>種類</h4>${kindButtons(ROAD_KINDS, f.item.kind, 'setRoadKind')}`;
+      h += `<hr><button class="danger" data-act="delete">この${f.type === 'route' ? 'コース' : '道'}を消す</button>`;
+    } else if (f && f.type === 'area') {
+      h += `<h3>場所</h3><p>青い丸をドラッグすると、大きさを変えられます。</p>${kindButtons(AREA_KINDS, f.item.kind, 'setAreaKind')}
+        <h4>同じものをふやす</h4>
+        <div class="row"><button data-act="duplicate">＋ となりに1つふやす</button><button data-act="stampArea">この大きさで続けて置く</button></div>
+        <p class="small">「続けて置く」を押すと、地図をクリックするたびに、同じ種類・同じ大きさの場所を置けます。</p>
+        <hr><button class="danger" data-act="delete">これを消す</button>`;
+    } else {
+      const bg = state.bg;
+      h += `<h3>地図の設定</h3>
+        <label>タイトル<input type="text" data-field="title" value="${esc(state.title)}"></label>
+        <label>下の言葉 1<input type="text" data-field="hint1" value="${esc(state.hint1)}"></label>
+        <label>下の言葉 2<input type="text" data-field="hint2" value="${esc(state.hint2)}"></label>
+        <hr><h4>印刷の形</h4>
+        <p class="small">右の欄</p>
+        <div class="row"><button data-act="sheetMode" data-v="sticker" class="${state.sheetMode !== 'order' ? 'active' : ''}">シールを貼る</button><button data-act="sheetMode" data-v="order" class="${state.sheetMode === 'order' ? 'active' : ''}">順番だけ</button></div>
+        <p class="small">折り線・パンチの穴（ケースに入れる・首から下げる）</p>
+        <div class="row">${[['', 'なし'], ['fold', '折り線だけ'], ['bottom', '下に穴'], ['top', '上に穴']].map(([v, t]) => `<button data-act="hang" data-v="${v}" class="${hangPos() === v ? 'active' : ''}">${t}</button>`).join('')}</div>
+        ${HANG_HELP[hangPos()] ? `<p class="small">${HANG_HELP[hangPos()]}</p>` : ''}
+        <hr><h4>下地の画像</h4>
+        <p>地図アプリ（Googleマップなど）の画面を下にしいて、なぞってかけます。</p>
+        <p>① 地図アプリでコースを表示<br>② 画面を切り取る（Windows：<b>Windowsキー＋Shift＋S</b>、Mac：<b>command＋control＋shift＋4</b>）<br>③ この画面で貼り付け（Windows：<b>Ctrl＋V</b>、Mac：<b>command＋V</b>）<br>（画像ファイルを地図にドラッグ、または下のボタンでも OK）</p>
+        <p class="small">下地はこのブラウザの中だけで使われ、インターネットには送られません。地図アプリの画像なので、印刷したものをネットに載せるときは、下地を入れないようにしましょう。</p>
+        <label class="upload"><input type="file" accept="image/*,.heic,.heif" data-upload="bg"></label>`;
+      if (bg) {
+        h += `<label>うすさ<input type="range" min="0.1" max="1" step="0.05" data-field="bgOpacity" value="${bg.opacity}"></label>
+          <label><input type="checkbox" data-field="bgShow" ${bg.show ? 'checked' : ''}> 下地を表示する</label>
+          <label><input type="checkbox" data-field="bgPrint" ${bg.print ? 'checked' : ''}> 印刷にも入れる</label>
+          <button data-act="removeBg">下地を消す</button>`;
+      }
+      h += `<p>下地をなぞってかき直すときは、いまの道・コース・場所・絵を消してから始めると楽です（バス停とゴールは残ります）。</p>
+        <button data-act="clearMap">道・コース・場所・絵を全部消す</button>`;
+      h += `<hr><h4>使い方</h4><ol>
+        <li>上のボタンで「何をするか」を選びます。</li>
+        <li>「選ぶ・動かす」で地図のものをクリックすると、ここで直せます。</li>
+        <li>まちがえたら「↩ もどす」。</li>
+        <li>地図はこのブラウザに自動で保存されます。コースごとに分けるときは「🗂 地図の一覧」、別のパソコンで使うときは「💾 ファイルに保存」。</li></ol>`;
+    }
+    panelEl.innerHTML = h;
+  }
+
+  panelEl.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-act]');
+    if (!b) return;
+    const act = b.dataset.act, v = b.dataset.v;
+    const f = sel ? find(sel) : null;
+    switch (act) {
+      case 'finish': finishDraft(); break;
+      case 'undoPoint': if (draft) { draft.pts.pop(); render(); renderPanel(); } break;
+      case 'cancelDraft': draft = null; render(); renderPanel(); say(MODE_HELP[mode]); break;
+      case 'exitMode': setMode('select'); break;
+      case 'sheetMode': commit(); state.sheetMode = v; changed(); break;
+      case 'hang': commit(); state.hang = v || ''; changed(); break;
+      case 'flipX': commit(); f.item.flipX = v === '1'; changed(); break;
+      case 'flipY': commit(); f.item.flipY = v === '1'; changed(); break;
+      case 'goalAlign': commit(); f.item.align = v; changed(); break;
+      case 'closeMaps': showMaps = false; renderPanel(); break;
+      case 'newMap': newMap(); break;
+      case 'dupMap': duplicateMap(); break;
+      case 'openMap': openMap(v); break;
+      case 'delMap': deleteMap(v); break;
+      case 'duplicate': duplicateSelected(); break;
+      case 'stampArea':
+        areaKind = f.item.kind; areaSize = { w: f.item.w, h: f.item.h };
+        setMode('area');
+        say(`地図をクリックするたびに、${AREA_KINDS[areaKind]}を同じ大きさで置けます。${DONE_HELP}`);
+        break;
+      case 'roadKind': roadKind = v; if (draft) draft.kind = v; render(); renderPanel(); break;
+      case 'areaKind': areaKind = v; renderPanel(); break;
+      case 'setRoadKind': commit(); f.item.kind = v; changed(); break;
+      case 'setAreaKind': commit(); f.item.kind = v; changed(); break;
+      case 'color':
+        if (f && f.type === 'stop') { commit(); f.item.color = v; changed(); } else { stopColor = v; renderPanel(); }
+        break;
+      case 'icon': {
+        const icon = b.dataset.t === 'tofu' ? { t: 'tofu' } : { t: 'emoji', v };
+        setIcon(icon);
+        break;
+      }
+      case 'cropPhoto': {
+        const cur = f && f.item && 'icon' in f.item ? f.item.icon : decoIcon;
+        if (!cur || cur.t !== 'img') break;
+        // まえの しゃしん（src が ない もの）は、いまの まるい しゃしんを もとに する
+        editPhoto(cur.src || cur.v, cur.src ? cur.crop : null).then((icon) => {
+          if (icon) { setIcon(icon); say('写真の位置と大きさを変えました。'); }
+        }).catch(() => photoError());
+        break;
+      }
+      case 'up': case 'down': {
+        const arr = state.stops, i = arr.indexOf(f.item), j = act === 'up' ? i - 1 : i + 1;
+        if (j < 0 || j >= arr.length) return;
+        commit(); [arr[i], arr[j]] = [arr[j], arr[i]]; changed();
+        break;
+      }
+      case 'delete': removeSelected(); break;
+      case 'printLabels': printLabels(); break;
+      case 'backMap': setView('map'); break;
+      case 'removeBg': commit(); state.bg = null; changed(); break;
+      case 'clearMap':
+        if (!confirm('道・コース・場所・絵を全部消しますか？（「↩ もどす」で取り消せます）')) return;
+        commit(); state.roads = []; state.routes = []; state.areas = []; state.decos = []; sel = null; changed();
+        break;
+    }
+  });
+  // ---------- しゃしんの いちと おおきさ ----------
+  // もとの しゃしん（icon.src）と きりとり（icon.crop）を のこして おき、あとから なおせる ように する
+  const CROP_VIEW = 600, CROP_OUT = 360, CROP_MAX = 5;
+  let crop = null;  // { img, src, z, cx, cy, resolve }。ひらいて いない ときは null
+  let cropDrag = null;
+  const cropBox = $('#cropBox'), cropCv = $('#cropCanvas'), cropRange = $('#cropRange');
+  // きりとる しかくの 1ぺん（もとの しゃしんの px）。z が おおきい ほど ちいさく きりとる ＝ おおきく みえる
+  const cropSide = () => Math.min(crop.img.width, crop.img.height) / crop.z;
+  function cropClamp() {
+    const s = cropSide() / 2, w = crop.img.width, h = crop.img.height;
+    if (!Number.isFinite(crop.cx)) crop.cx = w / 2;
+    if (!Number.isFinite(crop.cy)) crop.cy = h / 2;
+    crop.cx = Math.min(Math.max(crop.cx, s), w - s);
+    crop.cy = Math.min(Math.max(crop.cy, s), h - s);
+  }
+  function cropDraw() {
+    cropClamp();
+    const ctx = cropCv.getContext('2d'), s = cropSide(), V = CROP_VIEW, r = V / 2 - 4;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, V, V);
+    ctx.drawImage(crop.img, crop.cx - s / 2, crop.cy - s / 2, s, s, 0, 0, V, V);
+    // まるの そとを くらく する
+    ctx.beginPath();
+    ctx.rect(0, 0, V, V);
+    ctx.arc(V / 2, V / 2, r, 0, Math.PI * 2, true);
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(V / 2, V / 2, r, 0, Math.PI * 2);
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = '#fff';
+    ctx.stroke();
+    cropRange.value = crop.z;
+  }
+  // src：もとの しゃしん、c：まえの きりとり。きめたら あたらしい icon、やめたら null
+  async function editPhoto(src, c) {
+    const img = await loadImg(await (await fetch(src)).blob());
+    return new Promise((resolve) => {
+      crop = { img, src, z: (c && c.z) || 1, cx: c ? c.cx : img.width / 2, cy: c ? c.cy : img.height / 2, resolve };
+      cropBox.hidden = false;
+      cropDraw();
+      cropBox.querySelector('[data-crop=ok]').focus();
+    });
+  }
+  function cropZoom(z) { crop.z = Math.min(CROP_MAX, Math.max(1, z)); cropDraw(); }
+  function cropFinish(ok) {
+    if (!crop) return;
+    let icon = null;
+    if (ok) {
+      cropClamp();
+      const s = cropSide(), c = document.createElement('canvas');
+      c.width = c.height = CROP_OUT;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, CROP_OUT, CROP_OUT);
+      ctx.drawImage(crop.img, crop.cx - s / 2, crop.cy - s / 2, s, s, 0, 0, CROP_OUT, CROP_OUT);
+      icon = { t: 'img', v: c.toDataURL('image/jpeg', 0.85), src: crop.src, crop: { cx: R(crop.cx), cy: R(crop.cy), z: +crop.z.toFixed(3) } };
+    }
+    const done = crop.resolve;
+    crop = null; cropDrag = null;
+    cropBox.hidden = true;
+    done(icon);
+  }
+  cropBox.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-crop]');
+    if (!b || !crop) return;
+    const a = b.dataset.crop;
+    if (a === 'ok') cropFinish(true);
+    else if (a === 'cancel') cropFinish(false);
+    else if (a === 'reset') { crop.z = 1; crop.cx = crop.img.width / 2; crop.cy = crop.img.height / 2; cropDraw(); }
+    else cropZoom(crop.z * (a === 'in' ? 1.15 : 1 / 1.15));
+  });
+  cropRange.addEventListener('input', () => { if (crop) cropZoom(+cropRange.value); });
+  cropCv.addEventListener('pointerdown', (e) => {
+    if (!crop) return;
+    cropDrag = { x: e.clientX, y: e.clientY, cx: crop.cx, cy: crop.cy };
+    try { cropCv.setPointerCapture(e.pointerId); } catch (_) { /* */ }
+  });
+  cropCv.addEventListener('pointermove', (e) => {
+    if (!crop || !cropDrag) return;
+    const vw = cropCv.getBoundingClientRect().width;
+    if (!vw) return;  // まだ ひょうじ されて いない
+    const k = cropSide() / vw;  // がめんの 1px が しゃしんの なんpx か
+    crop.cx = cropDrag.cx - (e.clientX - cropDrag.x) * k;
+    crop.cy = cropDrag.cy - (e.clientY - cropDrag.y) * k;
+    cropDraw();
+  });
+  cropCv.addEventListener('pointerup', () => { cropDrag = null; });
+  cropCv.addEventListener('pointercancel', () => { cropDrag = null; });
+  cropCv.addEventListener('wheel', (e) => {
+    if (!crop) return;
+    e.preventDefault();
+    cropZoom(crop.z * (e.deltaY < 0 ? 1.1 : 1 / 1.1));
+  }, { passive: false });
+  // ひらいて いる あいだは、ほかの キー そうさ（Esc で モードが かわる など）を とめる
+  document.addEventListener('keydown', (e) => {
+    if (!crop) return;
+    e.stopPropagation();
+    if (e.key === 'Escape') cropFinish(false);
+    else if (e.key === 'Enter' && !e.target.matches('button')) { e.preventDefault(); cropFinish(true); }
+  }, true);
+
+  function setIcon(icon) {
+    const f = sel ? find(sel) : null;
+    if (f && f.item && 'icon' in f.item) { commit(); f.item.icon = icon; changed(); }
+    else { decoIcon = icon; renderPanel(); }
+  }
+
+  panelEl.addEventListener('focusin', (e) => { if (e.target.matches('input[type=text], input[type=range]')) editing = false; });
+  // なまえを いれて Enter で きまり。「バスていを おく」の ときは つぎの バスていへ
+  panelEl.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || !e.target.matches('input[type=text][data-field]')) return;
+    e.preventDefault();
+    e.target.blur();
+    if (mode === 'stop') say('名前が決まりました。地図の次の場所をクリックすると、次のバス停を置けます。' + DONE_HELP);
+  });
+  panelEl.addEventListener('input', (e) => {
+    if (e.target.dataset.lfield) { onLabelInput(e.target); return; }
+    const el = e.target, field = el.dataset.field;
+    if (!field) return;
+    if (field === 'mapName') { curName = el.value; saveToLibrary(); return; }  // ちずの なまえ（いちらん よう）
+    if (field === 'nextSize') { decoSize = +el.value; return; }  // つぎに おく えの おおきさ（ちずは かわらない）
+    if (!editing) { commit(); editing = true; }
+    const f = sel ? find(sel) : null;
+    if (field === 'label' || field === 'sub') f.item[field] = el.value;
+    else if (field === 'size') { f.item.size = +el.value; decoSize = f.item.size; }
+    else if (field === 'bgOpacity') state.bg.opacity = +el.value;
+    else if (field === 'bgShow') state.bg.show = el.checked;
+    else if (field === 'bgPrint') state.bg.print = el.checked;
+    else state[field] = el.value;
+    render(); persist();
+  });
+  panelEl.addEventListener('change', async (e) => {
+    const el = e.target;
+    if (el.matches('input[type=checkbox]')) editing = false;
+    if (!el.dataset.upload || !el.files || !el.files[0]) return;
+    try {
+      if (el.dataset.upload === 'bg') {
+        await setBgFromFile(el.files[0]);
+      } else {
+        const file = el.files[0];
+        el.value = '';  // おなじ しゃしんを もういちど えらんでも うごく ように
+        // もとの しゃしんは 900px まで ちいさく して のこし、まるに はめる ところを えらんで もらう
+        const icon = await editPhoto(await readImage(file, 900, false));
+        if (icon) { setIcon(icon); say('写真を入れました。'); } else say('写真を入れるのをやめました。');
+      }
+    } catch (err) {
+      photoError(err);
+    }
+  });
+
+  async function setBgFromFile(file) {
+    const src = await readImage(file, 1400, false);
+    commit();
+    state.bg = { src, opacity: 0.5, show: true, print: false };
+    draft = null; sel = null;
+    setMode('select'); persist();
+    say('下地を入れました。うすさは「地図の設定」のバーで変えられます。');
+  }
+  // Ctrl+V で はりつけ
+  document.addEventListener('paste', (e) => {
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (const it of items) {
+      if (it.type.startsWith('image/')) {
+        e.preventDefault();
+        setBgFromFile(it.getAsFile()).catch(photoError);
+        return;
+      }
+    }
+  });
+  // がぞうファイルを ドラッグして いれる
+  document.addEventListener('dragover', (e) => {
+    if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')) e.preventDefault();
+  });
+  document.addEventListener('drop', (e) => {
+    const file = e.dataTransfer && e.dataTransfer.files[0];
+    if (file && (file.type.startsWith('image/') || /\.hei[cf]$/i.test(file.name))) {
+      e.preventDefault();
+      setBgFromFile(file).catch(photoError);
+    }
+  });
+
+  async function readImage(file, max, square) {
+    let img;
+    try {
+      img = await loadImg(file);
+    } catch (e) {
+      // ブラウザが ひらけない ときだけ、iPhone の しゃしん（HEIC）なら へんかん する
+      if (!(await isHeic(file))) throw e;
+      img = await loadImg(await heicToJpeg(file));
+    }
+    let sx = 0, sy = 0, sw = img.width, sh = img.height;
+    if (square) { const m = Math.min(sw, sh); sx = (sw - m) / 2; sy = (sh - m) / 2; sw = sh = m; }
+    const sc = Math.min(1, max / Math.max(sw, sh));
+    const c = document.createElement('canvas');
+    c.width = Math.round(sw * sc); c.height = Math.round(sh * sc);
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.8);
+  }
+  function loadImg(blob) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode')); };
+      img.src = url;
+    });
+  }
+
+  // ---------- iPhone の しゃしん（HEIC） ----------
+  // Windows の Edge や Chrome は HEIC を ひらけない ので、へんかんの ぶひん（heic2any）を
+  // HEIC を えらんだ ときだけ インターネットから よみこむ。しゃしんは どこにも おくらない。
+  const HEIC_LIB = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+  const HEIC_SRI = 'sha384-OTofQ0MEeiSgh62havBcemCIK0gqj809wX6UA0uPISNMRnR6NZyCdGzX3SbLrgwL';
+  let heicLib = null;
+  async function isHeic(file) {
+    if (/image\/hei[cf]/i.test(file.type || '') || /\.hei[cf]$/i.test(file.name || '')) return true;
+    try {
+      const b = new Uint8Array(await file.slice(4, 12).arrayBuffer());
+      return /^ftyp(heic|heix|hevc|hevx|heim|heis|mif1|msf1)$/.test(String.fromCharCode(...b));
+    } catch (e) { return false; }
+  }
+  function loadHeicLib() {
+    if (window.heic2any) return Promise.resolve(window.heic2any);
+    if (!heicLib) {
+      heicLib = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = HEIC_LIB; s.integrity = HEIC_SRI; s.crossOrigin = 'anonymous';
+        s.onload = () => (window.heic2any ? resolve(window.heic2any) : reject(new Error('lib')));
+        s.onerror = () => { heicLib = null; s.remove(); reject(new Error('offline')); };
+        document.head.appendChild(s);
+      });
+    }
+    return heicLib;
+  }
+  async function heicToJpeg(file) {
+    say('iPhone の写真（HEIC）を使える形に変換しています。少しお待ちください…');
+    let lib;
+    try {
+      lib = await loadHeicLib();
+    } catch (e) {
+      const err = new Error('heic-offline'); err.heicOffline = true; throw err;
+    }
+    try {
+      const out = await lib({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+      return Array.isArray(out) ? out[0] : out;
+    } catch (e) {
+      const err = new Error('heic-convert'); err.heicFailed = true; throw err;
+    }
+  }
+  function photoError(err) {
+    if (err && err.heicOffline) {
+      say('iPhone の写真（HEIC）は、インターネットにつながっているときだけ変換できます。つながらないときは、スマホで写真を表示してスクリーンショットを撮り、それを使ってください。', true);
+    } else if (err && err.heicFailed) {
+      say('この iPhone の写真（HEIC）は変換できませんでした。スマホで写真を表示してスクリーンショットを撮り、それを使ってください。', true);
+    } else {
+      say('写真を読み込めませんでした。JPEG か PNG の写真を使ってください。', true);
+    }
+  }
+
+  // ---------- ちずの いちらん（IndexedDB に いくつも ほぞん） ----------
+  // いま ひらいて いる ちずは これまで どおり localStorage にも いれる（すぐ ひらける ように）。
+  // いちらんの ほうが ほんもの：ひらいた ときは いちらんの なかみを つかう。
+  const DB_NAME = 'osanpo-maps', STORE = 'maps', CUR_KEY = 'osanpo-current-map';
+  let db = null, curId = null, curName = '', mapList = [], showMaps = false, saveTimer = null;
+  const newMapId = () => 'm' + Date.now().toString(36) + uid();
+  const plainName = (t) => String(t || '').replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}️]/gu, '').trim();
+  function idbOpen() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(STORE, { keyPath: 'id' });
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  function idb(txMode, fn) {
+    return new Promise((resolve, reject) => {
+      const t = db.transaction(STORE, txMode), req = fn(t.objectStore(STORE));
+      t.oncomplete = () => resolve(req ? req.result : undefined);
+      t.onerror = t.onabort = () => reject(t.error);
+    });
+  }
+  function saveToLibrary(now) {
+    if (!db || !curId) return Promise.resolve();
+    clearTimeout(saveTimer);
+    const run = () => idb('readwrite', (st) => st.put({ id: curId, name: curName, updated: Date.now(), data: state }))
+      .catch(() => say('地図の一覧に保存できませんでした。「💾 ファイルに保存」を使ってください。', true));
+    if (now) return run();
+    saveTimer = setTimeout(run, 400);
+    return Promise.resolve();
+  }
+  async function refreshList() {
+    if (!db) return;
+    const all = await idb('readonly', (st) => st.getAll());
+    mapList = all.map((m) => ({ id: m.id, name: m.name, updated: m.updated })).sort((a, b) => b.updated - a.updated);
+    if (showMaps) renderPanel();
+  }
+  function useMap(id, name, data) {
+    curId = id; curName = name;
+    try { localStorage.setItem(CUR_KEY, id); } catch (e) { /* なくても うごく */ }
+    if (data) state = normalize(Object.assign(defaultState(), data));
+    undoStack.length = 0; sel = null; draft = null;
+  }
+  async function initLibrary() {
+    if (!window.indexedDB) return;
+    try { db = await idbOpen(); } catch (e) { db = null; return; }
+    let id = null;
+    try { id = localStorage.getItem(CUR_KEY); } catch (e) { /* */ }
+    const cur = id ? await idb('readonly', (st) => st.get(id)) : null;
+    if (cur) {
+      useMap(cur.id, cur.name, cur.data);
+      render(); renderPanel();
+    } else {
+      // はじめて：いまの ちずを いちらんの 1つめに する
+      useMap(newMapId(), plainName(state.title) || '地図 1');
+      await saveToLibrary(true);
+    }
+    await refreshList();
+  }
+  async function openMap(id) {
+    await saveToLibrary(true);
+    const m = await idb('readonly', (st) => st.get(id));
+    if (!m) return;
+    useMap(m.id, m.name, m.data);
+    showMaps = false;
+    changed();
+    say(`「${m.name}」を開きました。`);
+    refreshList();
+  }
+  async function newMap() {
+    await saveToLibrary(true);
+    const keep = state.label;  // シールの ようしの せっていは そのまま
+    useMap(newMapId(), `新しい地図 ${mapList.length + 1}`);
+    state = defaultState();
+    state.label = keep;
+    changed();
+    await saveToLibrary(true);
+    await refreshList();
+    say('新しい地図を作りました。見本の地図を直して作ってください。名前はこの一覧で変えられます。');
+  }
+  async function duplicateMap() {
+    await saveToLibrary(true);
+    useMap(newMapId(), `${curName} のコピー`);
+    changed();
+    await saveToLibrary(true);
+    await refreshList();
+    say('この地図を複製しました。いまはコピーの方を開いています。');
+  }
+  async function deleteMap(id) {
+    const m = mapList.find((x) => x.id === id);
+    if (!m || id === curId) return;
+    if (!confirm(`「${m.name}」を削除しますか？（元にもどせません）`)) return;
+    await idb('readwrite', (st) => st.delete(id));
+    await refreshList();
+    say(`「${m.name}」を削除しました。`);
+  }
+  function mapsPanel() {
+    if (!db) {
+      return `<h3>🗂 地図の一覧</h3><p>このブラウザでは地図の一覧が使えません。コースごとに分けるときは「💾 ファイルに保存」を使ってください。</p>
+        <button data-act="closeMaps">地図の設定にもどる</button>`;
+    }
+    const when = (t) => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`; };
+    let h = `<h3>🗂 地図の一覧</h3>
+      <p class="small">散歩のコースごとに、地図を分けて保存できます。地図はこのブラウザの中に自動で保存されます。</p>
+      <label>いま開いている地図の名前<input type="text" data-field="mapName" value="${esc(curName)}"></label>
+      <div class="row"><button class="primary" data-act="newMap">＋ 新しい地図</button><button data-act="dupMap">この地図を複製</button></div>
+      <ul class="maplist">`;
+    mapList.forEach((m) => {
+      const cur = m.id === curId;
+      h += `<li class="${cur ? 'cur' : ''}"><span class="nm">${esc(cur ? curName : m.name)}<small>${cur ? 'いま開いている地図' : '最後に直した日：' + when(m.updated)}</small></span>`;
+      if (!cur) h += `<button data-act="openMap" data-v="${m.id}">開く</button><button class="danger" data-act="delMap" data-v="${m.id}">削除</button>`;
+      h += '</li>';
+    });
+    h += `</ul><button data-act="closeMaps">地図の設定にもどる</button>
+      <p class="small">※ ブラウザの履歴やデータを消すと、一覧も消えます。大事な地図は「💾 ファイルに保存」もしておきましょう。</p>`;
+    return h;
+  }
+
+  // ---------- うえの ボタン ----------
+  $('#modes').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-mode]');
+    if (!b) return;
+    if (view === 'label') setView('map');
+    setMode(b.dataset.mode);
+  });
+  $('#undo').addEventListener('click', undo);
+  $('#labelBtn').addEventListener('click', () => setView(view === 'label' ? 'map' : 'label'));
+  $('#print').addEventListener('click', () => {
+    if (view === 'label') { printLabels(); return; }
+    if (draft) finishDraft(true);
+    sel = null; render(); renderPanel();
+    setTimeout(() => window.print(), 50);
+  });
+  $('#saveFile').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(state)], { type: 'application/json' });
+    const a = document.createElement('a');
+    const name = plainName(curName).replace(/[\\/:*?"<>|]/g, '').slice(0, 40) || 'おさんぽちず';
+    a.href = URL.createObjectURL(blob);
+    a.download = name + '.json';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    say(`「${name}.json」として保存しました。「📂 ファイルを開く」で、いつでも開けます。`);
+  });
+  $('#openFile').addEventListener('click', () => $('#openInput').click());
+  $('#openInput').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const fr = new FileReader();
+    fr.onload = async () => {
+      e.target.value = '';
+      let data;
+      try {
+        data = JSON.parse(fr.result);
+        if (!Array.isArray(data.stops) || !data.goal) throw new Error('bad');
+      } catch (err) {
+        say('このファイルは開けませんでした。', true);
+        return;
+      }
+      const name = file.name.replace(/\.json$/i, '') || '開いた地図';
+      if (db) {
+        // いまの ちずは のこして、いちらんに あたらしく くわえる
+        await saveToLibrary(true);
+        useMap(newMapId(), name, data);
+        changed();
+        await saveToLibrary(true);
+        await refreshList();
+        say(`ファイル「${name}」を開いて、地図の一覧に加えました。`);
+      } else {
+        commit();
+        state = normalize(Object.assign(defaultState(), data));
+        sel = null; draft = null;
+        changed();
+        say('ファイルを開きました。');
+      }
+    };
+    fr.readAsText(file);
+  });
+  $('#mapsBtn').addEventListener('click', () => {
+    const open = !(showMaps && view === 'map');
+    if (view === 'label') setView('map');
+    if (mode !== 'select') setMode('select');
+    sel = null; showMaps = open;
+    render(); renderPanel();
+    if (open) { say('地図の一覧です。コースごとに地図を分けて保存できます。'); refreshList(); }
+  });
+
+  setMode('select');
+  initLibrary();
+  if (!storageOK) say('この開き方では自動で保存できません。終わったら「💾 ファイルに保存」を使ってください。', true);
+})();
+</script>
+</body>
+</html>
